@@ -1,3 +1,10 @@
+/*
+Authors:  Ben Moran and Alex Stone
+Project:  Parallel Image Processing in C#
+Class:    CSCI 476
+Date:     11/22/21
+*/
+
 
 using System;
 using System.Threading;
@@ -6,20 +13,19 @@ using System.Diagnostics;
 using System.Collections.Generic;
 using System.Drawing;
 
-
-using System.ComponentModel;
-using System.Data;
-using System.Linq;
-using System.Text;
-using System.Windows.Forms;
-
 class ImageProcessing
 {
   static void Main (string[] args)
   {
-    Console.Write ("Enter String\n");
+    Console.Write ("Enter a filename:\n");
     string input = Console.ReadLine ();
-    BlackAndWhite(input);
+
+    Stopwatch stopWatch = new Stopwatch();
+    stopWatch.Start();
+    SerialGreyscale(input);
+    stopWatch.Stop();
+
+    Console.WriteLine("\nSerialGreyscale RunTime: " + stopWatch.ElapsedMilliseconds + " ms");
   }
 
   private static void PrintString (string s)
@@ -27,7 +33,7 @@ class ImageProcessing
     Console.WriteLine(s);
   }
 
-  private static void BlackAndWhite (string input)
+  private static void SerialGreyscale (string input)
   {
     Bitmap bmp = new Bitmap(input);
     for (int i = 0; i < bmp.Width; i++)
