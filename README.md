@@ -1,1 +1,1 @@
-# C-Parallel-Image-Processing
+# Parallel-Image-Processing
