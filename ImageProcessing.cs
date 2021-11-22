@@ -9,7 +9,7 @@ class ImageProcessing
 {
   static void Main (string[] args)
   {
-    Console.Write ("Enter String");
+    Console.Write ("Enter String\n");
     string input = Console.ReadLine ();
     PrintString(input);
   }
