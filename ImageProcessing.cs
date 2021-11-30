@@ -30,7 +30,7 @@ class ImageProcessing
   {
     Bitmap bmp = new Bitmap(input);
 
-    int threads = 4;
+    int threads = 8;
     int numThreads = threads / 2;
 
     int imageWidth = bmp.Width;
@@ -38,7 +38,7 @@ class ImageProcessing
 
 
 
-    List<int>[] partitionValues = new List<int>[4];
+    List<int>[] partitionValues = new List<int>[numThreads];
     List<int> hello = new List<int>();
     hello.Add(-1);
     hello.Add(-1);
@@ -46,46 +46,7 @@ class ImageProcessing
     hello.Add(-1);
 
     partitionValues[0] = hello;
-    partitionValues[1] = new List<int> { -1, -1, -1, -1 };
-    partitionValues[2] = new List<int> { -1, -1, -1, -1 };
-    partitionValues[3] = new List<int> { -1, -1, -1, -1 };
-
-
-    foreach (var list in partitionValues)
-    {
-      foreach (var element in list)
-      {
-        Console.Write(element + " ");
-      }
-      Console.WriteLine();
-    }
-
-    // int[,] array = new int[,] { { 1, 2, 3 }, { 4, 5, 6 }, { 7, 8, 9 } };
-    // int[] newArray = new int[] { 10, 11, 12 };
-    // array.SetValue(newArray, 0);
-
-
-    // Collection of string  
-    // int[] first = { 0, 1, 2 };
-    // int[] second = { 3, 4, 5 };
-    // int[] third = {6, 7, 8};
-
-    // Create a List and add a collection  
-    // List<int[]> partitionValues = new List<int>();
-    // partitionValues.AddRange(first);
-    // partitionValues.AddRange(second);
-    // partitionValues.AddRange(third);
-
-    // for(int i = 0; i < partitionValues.Count; ++i)
-    // {
-    //   Console.Write(partitionValues[i].ToString() + ", ");
-    // }
-
-    // foreach (int a in animalsList)
-    // {
-    //   Console.Write(a);
-    // }
-
+    partitionValues[1] = new List<int> ();
 
 
 
@@ -132,17 +93,6 @@ class ImageProcessing
       }
       Console.WriteLine();
     }
-
-
-    // for (int i = 0; i < partitionValues.GetLength(0); ++i)
-    // {
-    //   for (int j = 0; j < partitionValues.GetLongLength(1); ++j)
-    //   {
-    //     Console.Write(partitionValues[i, j] + " ");
-    //   }
-    //   Console.WriteLine();
-
-    // }
 
 
     // for (int i = 0; i < bmp.Width; i++)
