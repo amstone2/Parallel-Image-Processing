@@ -17,97 +17,81 @@ class ImageProcessing
   {
     // Console.Write("Enter file name: ");
     // string input = Console.ReadLine();
-    BlackAndWhite("i.jpg");
+    ProcessImage("i.jpg");
   }
 
-  private static void PrintString(string s)
+  private static void ProcessImage(string input)
   {
-    Console.WriteLine(s);
-  }
-
-
-  private static void BlackAndWhite(string input)
-  {
+    // New bitmap of the input image.
     Bitmap bmp = new Bitmap(input);
-
-    int threads = 8;
-    int numThreads = threads / 2;
-
+    // Image dimensions.
     int imageWidth = bmp.Width;
     int imageHeight = bmp.Height;
 
+    // Threads to run on.
+    int threads = 4;
+    // threads passed to partitioning algorithm.
+    int numThreads = threads / 2;
+
+    // The list of partitioned values.
+    List<int>[] partitionIValues = new List<int>[numThreads];
+    List<int>[] partitionJValues = new List<int>[numThreads];
 
 
-    List<int>[] partitionValues = new List<int>[numThreads];
-    List<int> hello = new List<int>();
-    hello.Add(-1);
-    hello.Add(-1);
-    hello.Add(-1);
-    hello.Add(-1);
-
-    partitionValues[0] = hello;
-    partitionValues[1] = new List<int> ();
-
-
-
-    Console.Write("\n********************************************************************\n");
-    Console.Write("Image width: " + imageWidth + " Image Height: " + imageHeight + " Num threads: " + numThreads + "\n");
     for (int i = 0; i < numThreads; ++i)
     {
+      // Calculate the I values using our algorithm.
       int myFirstI = (i * imageWidth) / (numThreads);
       int myLastI = ((i + 1) * imageWidth) / (numThreads);
 
-      Console.Write("\n********************************************************************\n");
-      Console.Write("I: " + i + "\n");
-      Console.Write("myFirstI: " + myFirstI + " myLastI: " + myLastI + "\n\n");
 
-      List<int> partitionedValues = new List<int>();
-      partitionedValues.Add(myFirstI);
-      partitionedValues.Add(myLastI);
-
+      // Put the i values in the list.
+      List<int> iValues = new List<int>();
+      iValues.Add(myFirstI);
+      iValues.Add(myLastI);
+      partitionIValues[i] = iValues;
 
       for (int j = 0; j < numThreads; ++j)
       {
 
-
+        // Calculate the j values using our algorithm. 
         int myFirstJ = (j * imageHeight) / (numThreads);
         int myLastJ = ((j + 1) * imageHeight) / (numThreads);
 
-
-        partitionedValues.Add(myFirstJ);
-        partitionedValues.Add(myLastJ);
-
-        partitionValues[i] = partitionedValues;
-
-        Console.Write("j: " + j + "\n");
-        Console.WriteLine("myFirstJ: " + myFirstJ + " myLastJ: " + myLastJ + "\n");
+        // Place the j values in the list.
+        List<int> jValues = new List<int>();
+        jValues.Add(myFirstJ);
+        jValues.Add(myLastJ);
+        partitionJValues[j] = jValues;
 
       }
     }
-    Console.Write("\n\n");
-    foreach (var list in partitionValues)
+
+    // Go through all the elements in the partioned list and apply the filter.
+    foreach (var iList in partitionIValues)
     {
-      foreach (var element in list)
+      foreach (var jlist in partitionJValues)
       {
-        Console.Write(element + " ");
+        // Get all the values for the bitmap.
+        int iStart = iList[0];
+        int iEnd = iList [1]; 
+        int jStart = jlist[0];
+        int jEnd = jlist[1];
+        for (int i = iStart; i < iEnd; ++i)
+        {
+          for (int j = jStart; j < jEnd; ++j)
+          {
+              Color c = bmp.GetPixel(i, j);
+
+              //Apply conversion equation
+              byte gray = (byte)(.21 * c.R + .71 * c.G + .071 * c.B);
+
+              //Set the color of this pixel
+              bmp.SetPixel(i, j, Color.FromArgb(gray, gray, gray));
+          }
+        }
       }
-      Console.WriteLine();
     }
-
-
-    // for (int i = 0; i < bmp.Width; i++)
-    // {
-    //   for (int j = 0; j < bmp.Height; j++)
-    //   {
-    //       Color c = bmp.GetPixel(i, j);
-
-    //       //Apply conversion equation
-    //       byte gray = (byte)(.21 * c.R + .71 * c.G + .071 * c.B);
-
-    //       //Set the color of this pixel
-    //       bmp.SetPixel(i, j, Color.FromArgb(gray, gray, gray));
-    //   }
-    // }
-    // bmp.Save("Greyscale.jpg");
+    bmp.Save("Greyscale.jpg");
   }
 }
