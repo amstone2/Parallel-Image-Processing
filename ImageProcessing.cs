@@ -30,35 +30,37 @@ class ImageProcessing
     static void Main(string[] args)
     {
         // To check the length of Command line arguments
-
         if (args.Length == 4)
         {
             int threads = Int32.Parse(args[0]);
             String filename = args[1];
             String newFilename = args[2];
             String mode = args[3];
-            if(mode == "compress")
+            if (mode == "compress")
             {
-              compressImageParallel(threads, filename, newFilename);
+                compressImageParallel (threads, filename, newFilename);
             }
-            else if(mode == "modify")
+            else if (mode == "modify")
             {
-              ChangeImage(threads, filename, newFilename);
+                ModifyImage (threads, filename, newFilename);
             }
         }
         else
         {
-          Console.WriteLine("No command line arguments passed.");
-          Console.WriteLine("Arg0 = threads");
-          Console.WriteLine("Arg1 = filename");
-          Console.WriteLine("Arg2 = new fileanme");
-          Console.WriteLine("Arg3 = Mode (compress/modify)");
-
+            Console.WriteLine("No command line arguments passed.");
+            Console.WriteLine("Arg0 = threads");
+            Console.WriteLine("Arg1 = filename");
+            Console.WriteLine("Arg2 = new fileanme");
+            Console.WriteLine("Arg3 = Mode (compress/modify)");
         }
     }
 
     /************************************************************/
-    public static void compressImageParallel(int threads, String filename, String newFilename)
+    public static void compressImageParallel(
+        int threads,
+        String filename,
+        String newFilename
+    )
     {
         // Image bitmap
         Bitmap bmp = new Bitmap(filename);
@@ -68,11 +70,11 @@ class ImageProcessing
         int totalHeight = bmp.Height;
 
         // threads passed to partitioning algorithm.
-        int numThreads = (int) Math.Ceiling(Math.Sqrt(threads));
+        int numThreads = threads / 2;
 
         Rectangle[] partitionedRectangles = new Rectangle[threads];
         partitionImageAndMakeRectangles(ref bmp,
-        numThreads,
+        threads,
         ref partitionedRectangles);
 
         // Final bitmap to have lines drawn on it.
@@ -99,46 +101,24 @@ class ImageProcessing
         cntEvent.Wait();
 
         // Create and save the final bitmap.
-        finalBitmap
-            .Save(newFilename,
-            System.Drawing.Imaging.ImageFormat.Jpeg);
+        finalBitmap.Save(newFilename, System.Drawing.Imaging.ImageFormat.Jpeg);
         finalBitmap.Dispose();
-    }
-
-    /************************************************************/
-    public static void compressRectangleAndDraw(
-        Rectangle rec,
-        ref Graphics g,
-        ref Bitmap bmp,
-        ref CountdownEvent cntEvent
-    )
-    {
-        Bitmap cloneBitmap = bmp.Clone(rec, bmp.PixelFormat);
-
-        MemoryStream ms = CompressImage(cloneBitmap, 3);
-        var compressedImage = Image.FromStream(ms);
-
-        lock (g)
-        {
-            g.DrawImage(compressedImage, new Point(rec.X, rec.Y));
-        }
-
-        // Draw the smaller rectangles on the bitmap
-        cntEvent.Signal();
     }
 
     /************************************************************/
     public static void partitionImageAndMakeRectangles(
         ref Bitmap bmp,
-        int numThreads,
+        int threads,
         ref Rectangle[] partitionedRectangles
     )
     {
+        int numThreads = threads / 2;
+
         // The list of partitioned values.
         List<int>[] partitionIValues = new List<int>[numThreads];
-        List<int>[] partitionJValues = new List<int>[numThreads];
+        List<int>[] partitionJValues = new List<int>[2];
         partitionImage(ref bmp,
-        numThreads,
+        threads,
         ref partitionIValues,
         ref partitionJValues);
 
@@ -168,6 +148,28 @@ class ImageProcessing
                 ++hello;
             }
         }
+    }
+
+    /************************************************************/
+    public static void compressRectangleAndDraw(
+        Rectangle rec,
+        ref Graphics g,
+        ref Bitmap bmp,
+        ref CountdownEvent cntEvent
+    )
+    {
+        Bitmap cloneBitmap = bmp.Clone(rec, bmp.PixelFormat);
+
+        MemoryStream ms = CompressImage(cloneBitmap, 50);
+        var compressedImage = Image.FromStream(ms);
+
+        lock (g)
+        {
+            g.DrawImage(compressedImage, new Point(rec.X, rec.Y));
+        }
+
+        // Draw the smaller rectangles on the bitmap
+        cntEvent.Signal();
     }
 
     /************************************************************/
@@ -206,25 +208,26 @@ class ImageProcessing
     }
 
     /************************************************************/
-    private static void ChangeImage(int threads, string filename, String newFilename)
+    private static void ModifyImage(
+        int threads,
+        string filename,
+        String newFilename
+    )
     {
         // New bitmap of the input image.
         Bitmap bmp = new Bitmap(filename);
-
 
         // threads passed to partitioning algorithm.
         int numThreads = threads / 2;
 
         // The list of partitioned values.
         List<int>[] partitionIValues = new List<int>[numThreads];
-        List<int>[] partitionJValues = new List<int>[numThreads];
+        List<int>[] partitionJValues = new List<int>[2];
 
         partitionImage(ref bmp,
-        numThreads,
+        threads,
         ref partitionIValues,
         ref partitionJValues);
-
-        var tasks = new Task[numThreads];
 
         CountdownEvent cntEvent = new CountdownEvent(threads);
 
@@ -251,17 +254,19 @@ class ImageProcessing
         }
 
         cntEvent.Wait();
-        bmp.Save(newFilename);
+        bmp.Save (newFilename);
     }
 
     /************************************************************/
     public static void partitionImage(
         ref Bitmap bmp,
-        int numThreads,
+        int threads,
         ref List<int>[] partitionIValues,
         ref List<int>[] partitionJValues
     )
     {
+        int numThreads = threads / 2;
+
         // Image dimensions.
         int imageWidth = bmp.Width;
         int imageHeight = bmp.Height;
@@ -278,11 +283,11 @@ class ImageProcessing
             iValues.Add (myLastI);
             partitionIValues[i] = iValues;
         }
-        for (int j = 0; j < numThreads; ++j)
+        for (int j = 0; j < 2; ++j)
         {
             // Calculate the j values using our algorithm.
-            int myFirstJ = (j * imageHeight) / (numThreads);
-            int myLastJ = ((j + 1) * imageHeight) / (numThreads);
+            int myFirstJ = (j * imageHeight) / (2);
+            int myLastJ = ((j + 1) * imageHeight) / (2);
 
             // Place the j values in the list.
             List<int> jValues = new List<int>();
