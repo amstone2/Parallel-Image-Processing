@@ -1,3 +1,14 @@
+/*
+   Filename   : count.cc
+   Author     : Alex M. Stone
+   Course     : CSCI 476
+   Date       : 11/4/2021
+   Assignment : Arithomania, ah, ah, ah
+   Description: Sorts a vector using parallel counting sort, 
+   serial counting sort, and standard sort.
+*/
+/************************************************************/
+// Using declaration
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -12,43 +23,55 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
+/************************************************************/
 class ImageProcessing
 {
+    /************************************************************/
     static void Main(string[] args)
     {
-        // Console.Write("Enter file name: ");
-        // string input = Console.ReadLine();
-        // ProcessImage("4k.jpeg");
-        // CompressImage("fish.jpg", "compressed.jpg", 0);
-        compressAndCombineImages();
+        // To check the length of Command line arguments
+
+        if (args.Length == 4)
+        {
+            int threads = Int32.Parse(args[0]);
+            String filename = args[1];
+            String newFilename = args[2];
+            String mode = args[3];
+            if(mode == "compress")
+            {
+              compressImageParallel(threads, filename, newFilename);
+            }
+            else if(mode == "modify")
+            {
+              ChangeImage(threads, filename, newFilename);
+            }
+        }
+        else
+        {
+          Console.WriteLine("No command line arguments passed.");
+          Console.WriteLine("Arg0 = threads");
+          Console.WriteLine("Arg1 = filename");
+          Console.WriteLine("Arg2 = new fileanme");
+          Console.WriteLine("Arg3 = Mode (compress/modify)");
+
+        }
     }
 
-    public static void compressAndCombineImages()
+    /************************************************************/
+    public static void compressImageParallel(int threads, String filename, String newFilename)
     {
         // Image bitmap
-        Bitmap bmp = new Bitmap("fish.jpg");
+        Bitmap bmp = new Bitmap(filename);
 
         // Original height and width.
         int totalWidth = bmp.Width;
         int totalHeight = bmp.Height;
 
-        // Threads to run on.
-        int threads = 16;
-
         // threads passed to partitioning algorithm.
         int numThreads = (int) Math.Ceiling(Math.Sqrt(threads));
-        Console.WriteLine("num threads" + numThreads);
 
-        // int numThreads = threads/2;
-        // // The list of partitioned values.
-        // List<int>[] partitionIValues = new List<int>[numThreads];
-        // List<int>[] partitionJValues = new List<int>[numThreads];
-        // partitionImage(ref bmp,
-        // numThreads,
-        // ref partitionIValues,
-        // ref partitionJValues);
-        List<int>[] partitionedRectangles = new List<int>[threads];
-        partitionImageAndReturnRectangles(ref bmp,
+        Rectangle[] partitionedRectangles = new Rectangle[threads];
+        partitionImageAndMakeRectangles(ref bmp,
         numThreads,
         ref partitionedRectangles);
 
@@ -57,89 +80,58 @@ class ImageProcessing
 
         Graphics g = Graphics.FromImage(finalBitmap);
 
-        Image blankBitmap = Image.FromFile("j.jpg");
+        Image blankBitmap = Image.FromFile(filename);
 
         // Make it all black
         g.Clear(Color.Black);
 
-        // /*************************************************************************/
-        // int firstRecX = partitionIValues[0][0];
-        // int firstRecY = partitionJValues[0][0];
-        // int firstRecWidth = partitionIValues[0][1];
-        // int firstRecHight = partitionJValues[0][1];
+        CountdownEvent cntEvent = new CountdownEvent(threads);
 
-        // // Rectangles to split bitmap.
-        // Rectangle firstRect =
-        //     new Rectangle(firstRecX, firstRecY, firstRecWidth, firstRecHight);
-
-        // // Split bitmap with rectangles
-        // Bitmap cloneFirstBitmap = bmp.Clone(firstRect, bmp.PixelFormat);
-
-        // // Compress the images and get them from the memory stream.
-        // MemoryStream ms = CompressImage(cloneFirstBitmap, 2);
-        // var compressedFirstImage = Image.FromStream(ms);
-
-        // // Draw
-        // g.DrawImage(compressedFirstImage, new Point(firstRecX, firstRecY));
-
-        // /*************************************************************************/
-        // /*************************************************************************/
-        // int secRecX = partitionIValues[0][1];
-        // int secRecY = partitionJValues[0][0];
-        // int secRecWidth = partitionIValues[0][1];
-        // int secRecHight = partitionJValues[0][1];
-        // Rectangle secondRect =
-        //     new Rectangle(secRecX, secRecY, secRecWidth, secRecHight);
-
-        // Bitmap cloneSecondBitmap = bmp.Clone(secondRect, bmp.PixelFormat);
-
-        // ms = CompressImage(cloneSecondBitmap, 2);
-        // var compressedSecondImage = Image.FromStream(ms);
-
-        // // Draw the smaller rectangles on the bitmap
-        // g.DrawImage(compressedSecondImage, new Point(secRecX, secRecY));
-
-        //
-        //
-        //
-        //
-        //
-        /*************************************************************************/
-        /*************************************************************************/
-        /*************************************************************************/
-        foreach (var list in partitionedRectangles)
+        foreach (var rec in partitionedRectangles)
         {
-            int x = list[0];
-            int y = list[1];
-            int width = list[2];
-            int height = list[3];
-            Rectangle secondRect = new Rectangle(x, y, width, height);
-
-            Bitmap cloneBitmap = bmp.Clone(secondRect, bmp.PixelFormat);
-
-            MemoryStream ms = CompressImage(cloneBitmap, 2);
-            var compressedImage = Image.FromStream(ms);
-
-            // Draw the smaller rectangles on the bitmap
-            g.DrawImage(compressedImage, new Point(x, y));
+            ThreadPool
+                .QueueUserWorkItem(stat =>
+                    compressRectangleAndDraw(rec,
+                    ref g,
+                    ref bmp,
+                    ref cntEvent));
         }
+        cntEvent.Wait();
 
-        /*************************************************************************/
-        /*************************************************************************/
-        g.Dispose();
-
-        /*************************************************************************/
         // Create and save the final bitmap.
         finalBitmap
-            .Save("New.jpg",
+            .Save(newFilename,
             System.Drawing.Imaging.ImageFormat.Jpeg);
         finalBitmap.Dispose();
     }
 
-    public static void partitionImageAndReturnRectangles(
+    /************************************************************/
+    public static void compressRectangleAndDraw(
+        Rectangle rec,
+        ref Graphics g,
+        ref Bitmap bmp,
+        ref CountdownEvent cntEvent
+    )
+    {
+        Bitmap cloneBitmap = bmp.Clone(rec, bmp.PixelFormat);
+
+        MemoryStream ms = CompressImage(cloneBitmap, 3);
+        var compressedImage = Image.FromStream(ms);
+
+        lock (g)
+        {
+            g.DrawImage(compressedImage, new Point(rec.X, rec.Y));
+        }
+
+        // Draw the smaller rectangles on the bitmap
+        cntEvent.Signal();
+    }
+
+    /************************************************************/
+    public static void partitionImageAndMakeRectangles(
         ref Bitmap bmp,
         int numThreads,
-        ref List<int>[] partitionedRectangles
+        ref Rectangle[] partitionedRectangles
     )
     {
         // The list of partitioned values.
@@ -165,34 +157,20 @@ class ImageProcessing
                 int jStart = jlist[0];
                 int jEnd = jlist[1];
 
-                // Console
-                //     .WriteLine("istart: " +
-                //     iStart +
-                //     " iend: " +
-                //     iEnd +
-                //     " jstart: " +
-                //     jStart +
-                //     " jEnd: " +
-                //     jEnd);
-                recValues.Add (iStart);
-                recValues.Add (jStart);
-                recValues.Add(iEnd - iStart);
-                recValues.Add(jEnd - jStart);
-                partitionedRectangles[hello] = recValues;
+                int x = iStart;
+                int y = jStart;
+                int width = iEnd - iStart;
+                int height = jEnd - jStart;
+
+                Rectangle rec = new Rectangle(x, y, width, height);
+
+                partitionedRectangles[hello] = rec;
                 ++hello;
             }
         }
-        Console.WriteLine("\nRectangle\n");
-        foreach (var list in partitionedRectangles)
-        {
-            foreach (var element in list)
-            {
-                Console.Write(element + " ");
-            }
-            Console.WriteLine();
-        }
     }
 
+    /************************************************************/
     public static MemoryStream CompressImage(Bitmap bmp, int quality)
     {
         ImageCodecInfo jpgEncoder = GetEncoder(ImageFormat.Jpeg);
@@ -213,6 +191,7 @@ class ImageProcessing
         return ms;
     }
 
+    /************************************************************/
     private static ImageCodecInfo GetEncoder(ImageFormat format)
     {
         ImageCodecInfo[] codecs = ImageCodecInfo.GetImageDecoders();
@@ -226,13 +205,12 @@ class ImageProcessing
         return null;
     }
 
-    private static void ProcessImage(string input)
+    /************************************************************/
+    private static void ChangeImage(int threads, string filename, String newFilename)
     {
         // New bitmap of the input image.
-        Bitmap bmp = new Bitmap(input);
+        Bitmap bmp = new Bitmap(filename);
 
-        // Threads to run on.
-        int threads = 4;
 
         // threads passed to partitioning algorithm.
         int numThreads = threads / 2;
@@ -273,9 +251,10 @@ class ImageProcessing
         }
 
         cntEvent.Wait();
-        bmp.Save("Greyscale.jpg");
+        bmp.Save(newFilename);
     }
 
+    /************************************************************/
     public static void partitionImage(
         ref Bitmap bmp,
         int numThreads,
@@ -311,27 +290,9 @@ class ImageProcessing
             jValues.Add (myLastJ);
             partitionJValues[j] = jValues;
         }
-
-        Console.WriteLine("\nI\n");
-        foreach (var list in partitionIValues)
-        {
-            foreach (var element in list)
-            {
-                Console.Write(element + " ");
-            }
-            Console.WriteLine();
-        }
-        Console.WriteLine("\nJ\n");
-        foreach (var list in partitionJValues)
-        {
-            foreach (var element in list)
-            {
-                Console.Write(element + " ");
-            }
-            Console.WriteLine();
-        }
     }
 
+    /************************************************************/
     public static void setPixelBlackAndWhite(
         int iStart,
         int iEnd,
@@ -358,3 +319,4 @@ class ImageProcessing
         cntEvent.Signal();
     }
 }
+/************************************************************/
