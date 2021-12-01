@@ -4,6 +4,8 @@ using System.ComponentModel;
 using System.Data;
 using System.Diagnostics;
 using System.Drawing;
+using System.Drawing.Imaging;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading;
@@ -16,7 +18,85 @@ class ImageProcessing
     {
         // Console.Write("Enter file name: ");
         // string input = Console.ReadLine();
-        ProcessImage("i.jpg");
+        // ProcessImage("4k.jpeg");
+        // CompressImage("fish.jpg", "compressed.jpg", 0);
+        compressAndCombineImages();
+    }
+
+    public static void compressAndCombineImages()
+    {
+        Bitmap myBitmap = new Bitmap("j.jpg");
+
+
+        Rectangle firstRect = new Rectangle(0, 0, 256, 512);
+        Rectangle secondRect = new Rectangle(256, 0, 256, 512);
+
+        Bitmap cloneFirstBitmap =
+            myBitmap.Clone(firstRect, myBitmap.PixelFormat);
+        Bitmap cloneSecondBitmap =
+            myBitmap.Clone(secondRect, myBitmap.PixelFormat);
+
+
+        MemoryStream ms = CompressImage(cloneFirstBitmap, 2);
+        var compressedFirstImage = Image.FromStream(ms);
+
+
+        ms = CompressImage(cloneSecondBitmap, 2);
+        var compressedSecondImage = Image.FromStream(ms);
+
+        int width = myBitmap.Width;
+        int height = myBitmap.Height;
+
+        Bitmap img3 = new Bitmap(512, 512);
+
+        Graphics g = Graphics.FromImage(img3);
+
+        Image img1 = Image.FromFile("j.jpg");
+
+        g.Clear(Color.Black);
+        g.DrawImage(compressedFirstImage, new Point(0, 0));
+        g.DrawImage(compressedSecondImage, new Point(256, 0));
+
+        // g.DrawImage(cloneSecondBitmap, new Point(0, 0));
+        g.Dispose();
+
+        img3.Save("CompressedImage.jpg", System.Drawing.Imaging.ImageFormat.Jpeg);
+        img3.Dispose();
+    }
+
+    public static MemoryStream CompressImage(Bitmap bmp, int quality)
+    {
+
+            ImageCodecInfo jpgEncoder = GetEncoder(ImageFormat.Jpeg);
+
+            System.Drawing.Imaging.Encoder QualityEncoder =
+                System.Drawing.Imaging.Encoder.Quality;
+
+            EncoderParameters myEncoderParameters = new EncoderParameters(1);
+
+            EncoderParameter myEncoderParameter =
+                new EncoderParameter(QualityEncoder, quality);
+
+            myEncoderParameters.Param[0] = myEncoderParameter;
+
+            // bmp1.Save (DestPath, jpgEncoder, myEncoderParameters);
+            var ms = new MemoryStream();
+            bmp.Save (ms, jpgEncoder, myEncoderParameters);
+            return ms;
+        
+    }
+
+    private static ImageCodecInfo GetEncoder(ImageFormat format)
+    {
+        ImageCodecInfo[] codecs = ImageCodecInfo.GetImageDecoders();
+        foreach (ImageCodecInfo codec in codecs)
+        {
+            if (codec.FormatID == format.Guid)
+            {
+                return codec;
+            }
+        }
+        return null;
     }
 
     private static void ProcessImage(string input)
@@ -116,7 +196,7 @@ class ImageProcessing
         ref CountdownEvent cntEvent
     )
     {
-      // Go through the part of the image and apply the grey image.
+        // Go through the part of the image and apply the grey image.
         for (int i = iStart; i < iEnd; ++i)
         {
             for (int j = jStart; j < jEnd; ++j)
