@@ -33,7 +33,7 @@ class ImageProcessing
         int height = bmp.Height;
 
         // Threads to run on.
-        int threads = 4;
+        int threads = 8;
 
         // threads passed to partitioning algorithm.
         int numThreads = threads / 2;
@@ -72,8 +72,7 @@ class ImageProcessing
             new Rectangle(firstRecX, firstRecY, firstRecWidth, firstRecHight);
 
         // Split bitmap with rectangles
-        Bitmap cloneFirstBitmap =
-            bmp.Clone(firstRect, bmp.PixelFormat);
+        Bitmap cloneFirstBitmap = bmp.Clone(firstRect, bmp.PixelFormat);
 
         // Compress the images and get them from the memory stream.
         MemoryStream ms = CompressImage(cloneFirstBitmap, 2);
@@ -91,8 +90,7 @@ class ImageProcessing
         Rectangle secondRect =
             new Rectangle(secRecX, secRecY, secRecWidth, secRecHight);
 
-        Bitmap cloneSecondBitmap =
-            bmp.Clone(secondRect, bmp.PixelFormat);
+        Bitmap cloneSecondBitmap = bmp.Clone(secondRect, bmp.PixelFormat);
 
         ms = CompressImage(cloneSecondBitmap, 2);
         var compressedSecondImage = Image.FromStream(ms);
@@ -126,8 +124,7 @@ class ImageProcessing
         ref List<int>[] partitionedRectangles
     )
     {
-
-            // The list of partitioned values.
+        // The list of partitioned values.
         List<int>[] partitionIValues = new List<int>[numThreads];
         List<int>[] partitionJValues = new List<int>[numThreads];
         partitionImage(ref bmp,
@@ -139,6 +136,24 @@ class ImageProcessing
         int imageWidth = bmp.Width;
         int imageHeight = bmp.Height;
 
+        Console.WriteLine("\nI\n");
+        foreach (var list in partitionIValues)
+        {
+            foreach (var element in list)
+            {
+                Console.Write(element + " ");
+            }
+            Console.WriteLine();
+        }
+        Console.WriteLine("\nJ\n");
+        foreach (var list in partitionJValues)
+        {
+            foreach (var element in list)
+            {
+                Console.Write(element + " ");
+            }
+            Console.WriteLine();
+        }
 
         int hello = 0;
         foreach (var iList in partitionIValues)
@@ -151,23 +166,24 @@ class ImageProcessing
                 int jStart = jlist[0];
                 int jEnd = jlist[1];
 
-                recValues.Add (iStart);
-                recValues.Add (jStart);
-                recValues.Add(iEnd - iStart);
-                recValues.Add(jEnd - jStart);
-                partitionedRectangles[hello] = recValues;
+                Console.o
+                // recValues.Add (iStart);
+                // recValues.Add (jStart);
+                // recValues.Add(iEnd - iStart);
+                // recValues.Add(jEnd - jStart);
+                // partitionedRectangles[hello] = recValues;
                 ++hello;
             }
         }
-        Console.WriteLine("\nRectangle\n");
-        foreach (var list in partitionedRectangles)
-        {
-            foreach (var element in list)
-            {
-                Console.Write(element + " ");
-            }
-            Console.WriteLine();
-        }
+        // Console.WriteLine("\nRectangle\n");
+        // foreach (var list in partitionedRectangles)
+        // {
+        //     foreach (var element in list)
+        //     {
+        //         Console.Write(element + " ");
+        //     }
+        //     Console.WriteLine();
+        // }
     }
 
     public static MemoryStream CompressImage(Bitmap bmp, int quality)
