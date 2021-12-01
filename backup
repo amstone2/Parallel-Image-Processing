@@ -29,31 +29,30 @@ class ImageProcessing
         Bitmap bmp = new Bitmap("fish.jpg");
 
         // Original height and width.
-        int totalWidth = bmp.Width;
-        int totalHeight = bmp.Height;
+        int width = bmp.Width;
+        int height = bmp.Height;
 
         // Threads to run on.
-        int threads = 16;
+        int threads = 4;
 
         // threads passed to partitioning algorithm.
-        int numThreads = (int) Math.Ceiling(Math.Sqrt(threads));
-        Console.WriteLine("num threads" + numThreads);
+        int numThreads = threads / 2;
 
-        // int numThreads = threads/2;
-        // // The list of partitioned values.
-        // List<int>[] partitionIValues = new List<int>[numThreads];
-        // List<int>[] partitionJValues = new List<int>[numThreads];
-        // partitionImage(ref bmp,
-        // numThreads,
-        // ref partitionIValues,
-        // ref partitionJValues);
-        List<int>[] partitionedRectangles = new List<int>[threads];
+        // The list of partitioned values.
+        List<int>[] partitionIValues = new List<int>[numThreads];
+        List<int>[] partitionJValues = new List<int>[numThreads];
+        partitionImage(ref bmp,
+        numThreads,
+        ref partitionIValues,
+        ref partitionJValues);
+
+        List<int>[] partitionedRectangles = new List<int>[numThreads * 2];
         partitionImageAndReturnRectangles(ref bmp,
         numThreads,
         ref partitionedRectangles);
 
         // Final bitmap to have lines drawn on it.
-        Bitmap finalBitmap = new Bitmap(totalWidth, totalHeight);
+        Bitmap finalBitmap = new Bitmap(width, height);
 
         Graphics g = Graphics.FromImage(finalBitmap);
 
@@ -62,42 +61,44 @@ class ImageProcessing
         // Make it all black
         g.Clear(Color.Black);
 
-        // /*************************************************************************/
-        // int firstRecX = partitionIValues[0][0];
-        // int firstRecY = partitionJValues[0][0];
-        // int firstRecWidth = partitionIValues[0][1];
-        // int firstRecHight = partitionJValues[0][1];
+        /*************************************************************************/
+        int firstRecX = partitionIValues[0][0];
+        int firstRecY = partitionJValues[0][0];
+        int firstRecWidth = partitionIValues[0][1];
+        int firstRecHight = partitionJValues[0][1];
 
-        // // Rectangles to split bitmap.
-        // Rectangle firstRect =
-        //     new Rectangle(firstRecX, firstRecY, firstRecWidth, firstRecHight);
+        // Rectangles to split bitmap.
+        Rectangle firstRect =
+            new Rectangle(firstRecX, firstRecY, firstRecWidth, firstRecHight);
 
-        // // Split bitmap with rectangles
-        // Bitmap cloneFirstBitmap = bmp.Clone(firstRect, bmp.PixelFormat);
+        // Split bitmap with rectangles
+        Bitmap cloneFirstBitmap =
+            bmp.Clone(firstRect, bmp.PixelFormat);
 
-        // // Compress the images and get them from the memory stream.
-        // MemoryStream ms = CompressImage(cloneFirstBitmap, 2);
-        // var compressedFirstImage = Image.FromStream(ms);
+        // Compress the images and get them from the memory stream.
+        MemoryStream ms = CompressImage(cloneFirstBitmap, 2);
+        var compressedFirstImage = Image.FromStream(ms);
 
-        // // Draw
-        // g.DrawImage(compressedFirstImage, new Point(firstRecX, firstRecY));
+        // Draw
+        g.DrawImage(compressedFirstImage, new Point(firstRecX, firstRecY));
 
-        // /*************************************************************************/
-        // /*************************************************************************/
-        // int secRecX = partitionIValues[0][1];
-        // int secRecY = partitionJValues[0][0];
-        // int secRecWidth = partitionIValues[0][1];
-        // int secRecHight = partitionJValues[0][1];
-        // Rectangle secondRect =
-        //     new Rectangle(secRecX, secRecY, secRecWidth, secRecHight);
+        /*************************************************************************/
+        /*************************************************************************/
+        int secRecX = partitionIValues[0][1];
+        int secRecY = partitionJValues[0][0];
+        int secRecWidth = partitionIValues[0][1];
+        int secRecHight = partitionJValues[0][1];
+        Rectangle secondRect =
+            new Rectangle(secRecX, secRecY, secRecWidth, secRecHight);
 
-        // Bitmap cloneSecondBitmap = bmp.Clone(secondRect, bmp.PixelFormat);
+        Bitmap cloneSecondBitmap =
+            bmp.Clone(secondRect, bmp.PixelFormat);
 
-        // ms = CompressImage(cloneSecondBitmap, 2);
-        // var compressedSecondImage = Image.FromStream(ms);
+        ms = CompressImage(cloneSecondBitmap, 2);
+        var compressedSecondImage = Image.FromStream(ms);
 
-        // // Draw the smaller rectangles on the bitmap
-        // g.DrawImage(compressedSecondImage, new Point(secRecX, secRecY));
+        // Draw the smaller rectangles on the bitmap
+        g.DrawImage(compressedSecondImage, new Point(secRecX, secRecY));
 
         //
         //
@@ -107,23 +108,6 @@ class ImageProcessing
         /*************************************************************************/
         /*************************************************************************/
         /*************************************************************************/
-        foreach (var list in partitionedRectangles)
-        {
-            int x = list[0];
-            int y = list[1];
-            int width = list[2];
-            int height = list[3];
-            Rectangle secondRect = new Rectangle(x, y, width, height);
-
-            Bitmap cloneBitmap = bmp.Clone(secondRect, bmp.PixelFormat);
-
-            MemoryStream ms = CompressImage(cloneBitmap, 2);
-            var compressedImage = Image.FromStream(ms);
-
-            // Draw the smaller rectangles on the bitmap
-            g.DrawImage(compressedImage, new Point(x, y));
-        }
-
         /*************************************************************************/
         /*************************************************************************/
         g.Dispose();
@@ -131,7 +115,7 @@ class ImageProcessing
         /*************************************************************************/
         // Create and save the final bitmap.
         finalBitmap
-            .Save("New.jpg",
+            .Save("CompressedImage.jpg",
             System.Drawing.Imaging.ImageFormat.Jpeg);
         finalBitmap.Dispose();
     }
@@ -142,7 +126,8 @@ class ImageProcessing
         ref List<int>[] partitionedRectangles
     )
     {
-        // The list of partitioned values.
+
+            // The list of partitioned values.
         List<int>[] partitionIValues = new List<int>[numThreads];
         List<int>[] partitionJValues = new List<int>[numThreads];
         partitionImage(ref bmp,
@@ -153,6 +138,7 @@ class ImageProcessing
         // Image dimensions.
         int imageWidth = bmp.Width;
         int imageHeight = bmp.Height;
+
 
         int hello = 0;
         foreach (var iList in partitionIValues)
@@ -165,15 +151,6 @@ class ImageProcessing
                 int jStart = jlist[0];
                 int jEnd = jlist[1];
 
-                // Console
-                //     .WriteLine("istart: " +
-                //     iStart +
-                //     " iend: " +
-                //     iEnd +
-                //     " jstart: " +
-                //     jStart +
-                //     " jEnd: " +
-                //     jEnd);
                 recValues.Add (iStart);
                 recValues.Add (jStart);
                 recValues.Add(iEnd - iStart);
@@ -310,25 +287,6 @@ class ImageProcessing
             jValues.Add (myFirstJ);
             jValues.Add (myLastJ);
             partitionJValues[j] = jValues;
-        }
-
-        Console.WriteLine("\nI\n");
-        foreach (var list in partitionIValues)
-        {
-            foreach (var element in list)
-            {
-                Console.Write(element + " ");
-            }
-            Console.WriteLine();
-        }
-        Console.WriteLine("\nJ\n");
-        foreach (var list in partitionJValues)
-        {
-            foreach (var element in list)
-            {
-                Console.Write(element + " ");
-            }
-            Console.WriteLine();
         }
     }
 
