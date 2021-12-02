@@ -29,7 +29,7 @@ class ImageProcessing
     /************************************************************/
     static void Main(string[] args)
     {
-        // To check the length of Command line arguments
+        // Gets command line arguments 
 
         if (args.Length == 4)
         {
@@ -53,11 +53,13 @@ class ImageProcessing
           Console.WriteLine("Arg1 = filename");
           Console.WriteLine("Arg2 = new fileanme");
           Console.WriteLine("Arg3 = Mode (compress/modify)");
-
         }
     }
 
     /************************************************************/
+
+    // Takes a the number of threads (must be an even number), a filename for the original image, 
+    // and a newfile name for the compressed image
     public static void compressImageParallel(int threads, String filename, String newFilename)
     {
         // Image bitmap
