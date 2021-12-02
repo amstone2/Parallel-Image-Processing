@@ -180,7 +180,6 @@ class ImageProcessing
 
     /************************************************************/
     // Compressed the bitmap with the qualilty (0 - 100 inclusive).
-
     // Returns a memerory stream that the image is i so we can use it later.
     public static MemoryStream CompressImage(Bitmap bmp, int quality)
     {
@@ -199,7 +198,6 @@ class ImageProcessing
             new EncoderParameter(QualityEncoder, quality);
 
         // Sets the encoder parameter.
-
         myEncoderParameters.Param[0] = myEncoderParameter;
 
         // Save the bitmap to the memory stream so it gets compressed.
@@ -210,7 +208,6 @@ class ImageProcessing
 
     /************************************************************/
     // Get the encoder of the specified format.
-
     // Returns an ImageCodeInfo object to be ussed in compression.
     private static ImageCodecInfo GetEncoder(ImageFormat format)
     {
@@ -227,9 +224,7 @@ class ImageProcessing
 
     /************************************************************/
     // Takes an image and partions it using our partitioning formula using rectangles.
-
     // J/Height/Y will always be two to make it more parallelizable
-
     public static void partitionImage(
         ref Bitmap bmp,
         int threads,
@@ -283,42 +278,38 @@ class ImageProcessing
         // threads passed to partitioning algorithm.
         int numOfColumns = threads / 2;
 
-        // The list of partitioned values.
-        List<int>[] partitionIValues = new List<int>[numOfColumns];
-        List<int>[] partitionJValues = new List<int>[2];
-
-        partitionImage(ref bmp,
+        // Get the rectangles needed to modify the image in.
+        Rectangle[] partitionedRectangles = new Rectangle[threads];
+        partitionImageAndMakeRectangles(ref bmp,
         threads,
-        ref partitionIValues,
-        ref partitionJValues);
+        ref partitionedRectangles);
 
         // Count down event so we can see how many threads have been completed.
         CountdownEvent cntEvent = new CountdownEvent(threads);
 
         // Go through all the elements in the partioned list and apply the filter.
-        foreach (var iList in partitionIValues)
+        foreach (var rec in partitionedRectangles)
         {
-            foreach (var jlist in partitionJValues)
-            {
-                // Get all the values for the bitmap.
-                int iStart = iList[0];
-                int iEnd = iList[1];
-                int jStart = jlist[0];
-                int jEnd = jlist[1];
+            // Get all the values for the bitmap.
+            int iStart = rec.X;
+            int iEnd = rec.Width + rec.X;
+            int jStart = rec.Y;
+            int jEnd = rec.Height + rec.Y;
 
-                // Place the methods in the threadpool.
-                ThreadPool
-                    .QueueUserWorkItem(state =>
-                        setPixelBlackAndWhite(iStart,
-                        iEnd,
-                        jStart,
-                        jEnd,
-                        ref bmp,
-                        ref cntEvent));
-            }
+            // Place the methods in the threadpool.
+            ThreadPool
+                .QueueUserWorkItem(state =>
+                    setBoarderRec(iStart,
+                    iEnd,
+                    jStart,
+                    jEnd,
+                    ref bmp,
+                    ref cntEvent));
         }
+
         // Wiat for all threads to finish.
         cntEvent.Wait();
+
         // Save the bitmap to the new file name.
         bmp.Save (newFilename);
     }
@@ -350,5 +341,46 @@ class ImageProcessing
         }
         cntEvent.Signal();
     }
+
+    /************************************************************/
+    public static void setBoarderRec(
+        int iStart,
+        int iEnd,
+        int jStart,
+        int jEnd,
+        ref Bitmap bmp,
+        ref CountdownEvent cntEvent
+    )
+    {
+        // Go through the part of the image and apply the grey image.
+        for (int i = iStart; i < iEnd; i += iEnd)
+        {
+            for (int j = jStart; j < jEnd; ++j)
+            {
+                Color c = bmp.GetPixel(i, j);
+
+                // Apply conversion equation.
+                byte gray = (byte)(0 * c.R + 0 * c.G + 0 * c.B);
+
+                // Set the color of this pixel.
+                bmp.SetPixel(i, j, Color.FromArgb(gray, gray, gray));
+            }
+        }
+        for (int i = iStart; i < iEnd; ++i)
+        {
+            for (int j = jStart; j < jEnd; j+=jEnd)
+            {
+                Color c = bmp.GetPixel(i, j);
+
+                // Apply conversion equation.
+                byte gray = (byte)(0 * c.R + 0 * c.G + 0 * c.B);
+
+                // Set the color of this pixel.
+                bmp.SetPixel(i, j, Color.FromArgb(gray, gray, gray));
+            }
+        }
+        cntEvent.Signal();
+    }
 }
+
 /************************************************************/
