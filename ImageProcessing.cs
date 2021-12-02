@@ -28,7 +28,11 @@ class ImageProcessing
     /************************************************************/
     static void Main(string[] args)
     {
+<<<<<<< HEAD
         // Gets command line arguments
+=======
+        // To check the length of Command line arguments
+>>>>>>> 7181ce3e2c0c5a5f180921e11230eaf1b85526a9
         if (args.Length == 4)
         {
             int threads = Int32.Parse(args[0]);
@@ -41,12 +45,19 @@ class ImageProcessing
             }
             else if (mode == "modify")
             {
+<<<<<<< HEAD
                 ModifyImageInParallel (threads, filename, newFilename);
+=======
+                ModifyImage (threads, filename, newFilename);
+>>>>>>> 7181ce3e2c0c5a5f180921e11230eaf1b85526a9
             }
         }
         else
         {
+<<<<<<< HEAD
             // Help messave
+=======
+>>>>>>> 7181ce3e2c0c5a5f180921e11230eaf1b85526a9
             Console.WriteLine("No command line arguments passed.");
             Console.WriteLine("Arg0 = threads");
             Console.WriteLine("Arg1 = filename");
@@ -56,8 +67,11 @@ class ImageProcessing
     }
 
     /************************************************************/
+<<<<<<< HEAD
     // Takes a the number of threads (must be an even number), a filename for the original image,
     // and a newfile name for the compressed image
+=======
+>>>>>>> 7181ce3e2c0c5a5f180921e11230eaf1b85526a9
     public static void compressImageParallel(
         int threads,
         String filename,
@@ -72,7 +86,11 @@ class ImageProcessing
         int totalHeight = bmp.Height;
 
         // threads passed to partitioning algorithm.
+<<<<<<< HEAD
         int numOfColumns = threads / 2;
+=======
+        int numThreads = threads / 2;
+>>>>>>> 7181ce3e2c0c5a5f180921e11230eaf1b85526a9
 
         // Get the rectangles needed to compress the image.
         Rectangle[] partitionedRectangles = new Rectangle[threads];
@@ -108,6 +126,10 @@ class ImageProcessing
 
         // Create and save the final bitmap.
         finalBitmap.Save(newFilename, System.Drawing.Imaging.ImageFormat.Jpeg);
+<<<<<<< HEAD
+=======
+        finalBitmap.Dispose();
+>>>>>>> 7181ce3e2c0c5a5f180921e11230eaf1b85526a9
     }
 
     /************************************************************/
@@ -117,10 +139,17 @@ class ImageProcessing
         ref Rectangle[] partitionedRectangles
     )
     {
+<<<<<<< HEAD
         int numOfColumns = threads / 2;
 
         // The list of partitioned values.
         List<int>[] partitionIValues = new List<int>[numOfColumns];
+=======
+        int numThreads = threads / 2;
+
+        // The list of partitioned values.
+        List<int>[] partitionIValues = new List<int>[numThreads];
+>>>>>>> 7181ce3e2c0c5a5f180921e11230eaf1b85526a9
         List<int>[] partitionJValues = new List<int>[2];
         partitionImage(ref bmp,
         threads,
@@ -171,16 +200,26 @@ class ImageProcessing
 
         lock (g)
         {
+<<<<<<< HEAD
             // Draw the smaller rectangles on the bitmap
             g.DrawImage(compressedImage, new Point(rec.X, rec.Y));
         }
 
+=======
+            g.DrawImage(compressedImage, new Point(rec.X, rec.Y));
+        }
+
+        // Draw the smaller rectangles on the bitmap
+>>>>>>> 7181ce3e2c0c5a5f180921e11230eaf1b85526a9
         cntEvent.Signal();
     }
 
     /************************************************************/
+<<<<<<< HEAD
     // Compressed the bitmap with the qualilty (0 - 100 inclusive).
     // Returns a memerory stream that the image is i so we can use it later.
+=======
+>>>>>>> 7181ce3e2c0c5a5f180921e11230eaf1b85526a9
     public static MemoryStream CompressImage(Bitmap bmp, int quality)
     {
         // Get the encoder using our method.
@@ -223,8 +262,61 @@ class ImageProcessing
     }
 
     /************************************************************/
+<<<<<<< HEAD
     // Takes an image and partions it using our partitioning formula using rectangles.
     // J/Height/Y will always be two to make it more parallelizable
+=======
+    private static void ModifyImage(
+        int threads,
+        string filename,
+        String newFilename
+    )
+    {
+        // New bitmap of the input image.
+        Bitmap bmp = new Bitmap(filename);
+
+        // threads passed to partitioning algorithm.
+        int numThreads = threads / 2;
+
+        // The list of partitioned values.
+        List<int>[] partitionIValues = new List<int>[numThreads];
+        List<int>[] partitionJValues = new List<int>[2];
+
+        partitionImage(ref bmp,
+        threads,
+        ref partitionIValues,
+        ref partitionJValues);
+
+        CountdownEvent cntEvent = new CountdownEvent(threads);
+
+        // Go through all the elements in the partioned list and apply the filter.
+        foreach (var iList in partitionIValues)
+        {
+            foreach (var jlist in partitionJValues)
+            {
+                // Get all the values for the bitmap.
+                int iStart = iList[0];
+                int iEnd = iList[1];
+                int jStart = jlist[0];
+                int jEnd = jlist[1];
+
+                ThreadPool
+                    .QueueUserWorkItem(state =>
+                        setPixelBlackAndWhite(iStart,
+                        iEnd,
+                        jStart,
+                        jEnd,
+                        ref bmp,
+                        ref cntEvent));
+            }
+        }
+
+        cntEvent.Wait();
+        bmp.Save (newFilename);
+    }
+
+    /************************************************************/
+>>>>>>> 7181ce3e2c0c5a5f180921e11230eaf1b85526a9
     public static void partitionImage(
         ref Bitmap bmp,
         int threads,
@@ -232,7 +324,11 @@ class ImageProcessing
         ref List<int>[] partitionJValues
     )
     {
+<<<<<<< HEAD
         int numOfColumns = threads / 2;
+=======
+        int numThreads = threads / 2;
+>>>>>>> 7181ce3e2c0c5a5f180921e11230eaf1b85526a9
 
         // Image dimensions.
         int imageWidth = bmp.Width;
