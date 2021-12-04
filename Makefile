@@ -1,3 +1,3 @@
 a1:
-	csc -optimize ImageProcessing.cs  -out:ImageProcessing 
+	csc -optimize CodeOverhall.cs  -out:CodeOverhall 
 .PHONY: a1
