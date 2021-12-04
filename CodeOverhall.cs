@@ -181,8 +181,8 @@ class CodeOverhall
         int numOfColumns = threads / 2;
 
         // The list of partitioned values.
-        List<int>[] partitionIValues = new List<int>[numOfColumns];
-        List<int>[] partitionJValues = new List<int>[2];
+        List<int>[] partitionIValues = new List<int>[2];
+        List<int>[] partitionJValues = new List<int>[numOfColumns];
         partitionImage(ref bmp,
         threads,
         ref partitionIValues,
@@ -232,11 +232,11 @@ class CodeOverhall
         int imageWidth = bmp.Width;
         int imageHeight = bmp.Height;
 
-        for (int i = 0; i < numOfColumns; ++i)
+        for (int i = 0; i < 2; ++i)
         {
             // Calculate the I values using our algorithm.
-            int myFirstI = (i * imageWidth) / (numOfColumns);
-            int myLastI = ((i + 1) * imageWidth) / (numOfColumns);
+            int myFirstI = (i * imageWidth) / (2);
+            int myLastI = ((i + 1) * imageWidth) / (2);
 
             // Put the i values in the list.
             List<int> iValues = new List<int>();
@@ -244,11 +244,11 @@ class CodeOverhall
             iValues.Add (myLastI);
             partitionIValues[i] = iValues;
         }
-        for (int j = 0; j < 2; ++j)
+        for (int j = 0; j < numOfColumns; ++j)
         {
             // Calculate the j values using our algorithm.
-            int myFirstJ = (j * imageHeight) / (2);
-            int myLastJ = ((j + 1) * imageHeight) / (2);
+            int myFirstJ = (j * imageHeight) / (numOfColumns);
+            int myLastJ = ((j + 1) * imageHeight) / (numOfColumns);
 
             // Place the j values in the list.
             List<int> jValues = new List<int>();
@@ -631,7 +631,6 @@ class CodeOverhall
         }
         cntEvent.Signal();
     }
-
 }
 /************************************************************/
 
