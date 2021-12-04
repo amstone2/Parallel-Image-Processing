@@ -70,7 +70,7 @@ class CodeOverhall
             String newFilename = args[2];
             int index = newFilename.IndexOf(".");
             String serialNewFileName = newFilename.Substring(0, index);
-            serialNewFileName += "Serial.jpg";
+            serialNewFileName += "Serial.jpeg";
 
             String mode = args[3];
 
@@ -87,6 +87,17 @@ class CodeOverhall
             {
               blackAndWhiteImageInParallel(threads, filename, newFilename);
               blackAndWhiteImageSerial(filename, serialNewFileName);
+            }
+            else if(mode == "bri")
+            {
+               int brightness = Int32.Parse(args[4]);
+
+              brightnessInParallel(threads, filename, newFilename, brightness);
+              brightnessSerial(filename, serialNewFileName, brightness);
+            }
+            else if(mode == "border")
+            {
+              setBorderInParallel(threads, filename, newFilename);
             }
         }
         else
@@ -339,7 +350,7 @@ class CodeOverhall
 
       public static void blackAndWhiteImageInParallel(
         int threads,
-        string filename,
+        String filename,
         String newFilename
     )
     {
@@ -428,6 +439,199 @@ class CodeOverhall
         }
         cntEvent.Signal();
     }
+
+
+      public static void brightnessInParallel(
+        int threads,
+        String filename,
+        String newFilename,
+        int brightness
+    )
+    {
+        Stopwatch watch = new Stopwatch();
+        watch.Start();
+        // New bitmap of the input image.
+        Bitmap bmp = new Bitmap(filename);
+
+        // threads passed to partitioning algorithm.
+        int numOfColumns = threads / 2;
+
+        // Get the rectangles needed to modify the image in.
+        Rectangle[] partitionedRectangles = new Rectangle[threads];
+        getRectangles(ref bmp,
+        threads,
+        ref partitionedRectangles);
+
+        // Count down event so we can see how many threads have been completed.
+        CountdownEvent cntEvent = new CountdownEvent(threads);
+
+        int modificationValue = brightness;
+        // Go through all the elements in the partioned list and apply the filter.
+        foreach (var rec in partitionedRectangles)
+        {
+            var data = new ThreadDataForModification(rec, ref bmp, modificationValue, ref cntEvent);
+            ThreadPool.QueueUserWorkItem(s => setBrightness(s), data);
+        }
+
+        // Wiat for all threads to finish.
+        cntEvent.Wait();
+
+        watch.Stop();
+        long parallelTime = watch.ElapsedMilliseconds;
+        Console.WriteLine("Parallel time for baw: " + parallelTime + " ms\n");
+        // Save the bitmap to the new file name.
+        bmp.Save (newFilename);
+    }
+
+    public static void brightnessSerial(String filename, String newFilename, int brightness)
+    {
+        Stopwatch watch = new Stopwatch();
+        watch.Start();
+
+        // New bitmap of the input image.
+        Bitmap bmp = new Bitmap(filename);
+        Rectangle rec = new Rectangle(0, 0, bmp.Width, bmp.Height);
+        int modificationValue = brightness;
+        CountdownEvent cntEvent = new CountdownEvent(1);
+
+        var data = new ThreadDataForModification(rec, ref bmp, modificationValue, ref cntEvent);
+
+        setBrightness(data);
+
+        watch.Stop();
+        long parallelTime = watch.ElapsedMilliseconds;
+        Console.WriteLine("Serial time for baw: " + parallelTime + " ms\n");
+        // bmp.Save (newFilename);
+    }
+
+
+
+    public static void setBrightness(object d)
+    {
+        ThreadDataForModification data = (ThreadDataForModification)d;
+        var rec = data.rec;
+        var bmp = data.bmp;
+        var bri = data.modificationValue;
+        var cntEvent = data.cntEvent;
+
+        int iStart = rec.X;
+        int iEnd = rec.Width + rec.X;
+        int jStart = rec.Y;
+        int jEnd = rec.Height + rec.Y;
+        // Go through the part of the image and apply the grey image.
+        for (int i = iStart; i < iEnd; ++i)
+        {
+            for (int j = jStart; j < jEnd; ++j)
+            {
+                Color c = bmp.GetPixel(i, j);
+                int red = 0;
+                int green = 0;
+                int blue = 0;
+                int cR = (int) c.R;
+                int cG = (int) c.G;
+                int cB = (int) c.B;
+
+                if (!(cR + bri > 255 || cR + bri < 0))
+                {
+                    red = cR + bri;
+                }
+                if (!(cG + bri > 255 || cG + bri < 0))
+                {
+                    green = cG + bri;
+                }
+                if (!(cB + bri > 255 || cB + bri < 0))
+                {
+                    blue = cB + bri;
+                }
+                bmp.SetPixel(i, j, Color.FromArgb(red, green, blue));
+            }
+        }
+        cntEvent.Signal();
+    }
+
+
+      public static void setBorderInParallel(
+        int threads,
+        String filename,
+        String newFilename
+    )
+    {
+        Stopwatch watch = new Stopwatch();
+        watch.Start();
+        // New bitmap of the input image.
+        Bitmap bmp = new Bitmap(filename);
+
+        // threads passed to partitioning algorithm.
+        int numOfColumns = threads / 2;
+
+        // Get the rectangles needed to modify the image in.
+        Rectangle[] partitionedRectangles = new Rectangle[threads];
+        getRectangles(ref bmp,
+        threads,
+        ref partitionedRectangles);
+
+        // Count down event so we can see how many threads have been completed.
+        CountdownEvent cntEvent = new CountdownEvent(threads);
+
+        int modificationValue = 0;
+        // Go through all the elements in the partioned list and apply the filter.
+        foreach (var rec in partitionedRectangles)
+        {
+            var data = new ThreadDataForModification(rec, ref bmp, modificationValue, ref cntEvent);
+            ThreadPool.QueueUserWorkItem(s => setThreadBorder(s), data);
+        }
+
+        // Wiat for all threads to finish.
+        cntEvent.Wait();
+
+        watch.Stop();
+        long parallelTime = watch.ElapsedMilliseconds;
+        Console.WriteLine("Parallel time for border: " + parallelTime + " ms\n");
+        // Save the bitmap to the new file name.
+        bmp.Save (newFilename);
+    }
+    public static void setThreadBorder(Object d)
+    {
+        ThreadDataForModification data = (ThreadDataForModification)d;
+        var rec = data.rec;
+        var bmp = data.bmp;
+        var cntEvent = data.cntEvent;
+
+        int iStart = rec.X;
+        int iEnd = rec.Width + rec.X;
+        int jStart = rec.Y;
+        int jEnd = rec.Height + rec.Y;
+
+
+        for (int i = iStart; i < iEnd; i += iEnd)
+        {
+            for (int j = jStart; j < jEnd; ++j)
+            {
+                Color c = bmp.GetPixel(i, j);
+
+                // Apply conversion equation.
+                byte black = (byte)(0 * c.R + 0 * c.G + 0 * c.B);
+
+                // Set the color of this pixel.
+                bmp.SetPixel(i, j, Color.FromArgb(black, black, black));
+            }
+        }
+        for (int i = iStart; i < iEnd; ++i)
+        {
+            for (int j = jStart; j < jEnd; j += jEnd)
+            {
+                Color c = bmp.GetPixel(i, j);
+
+                // Apply conversion equation.
+                byte black = (byte)(0 * c.R + 0 * c.G + 0 * c.B);
+
+                // Set the color of this pixel.
+                bmp.SetPixel(i, j, Color.FromArgb(black, black, black));
+            }
+        }
+        cntEvent.Signal();
+    }
+
 }
 /************************************************************/
 
