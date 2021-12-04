@@ -501,7 +501,7 @@ class CodeOverhall
         watch.Stop();
         long parallelTime = watch.ElapsedMilliseconds;
         Console.WriteLine("Serial time for baw: " + parallelTime + " ms\n");
-        // bmp.Save (newFilename);
+        bmp.Save (newFilename);
     }
 
 
@@ -530,18 +530,42 @@ class CodeOverhall
                 int cR = (int) c.R;
                 int cG = (int) c.G;
                 int cB = (int) c.B;
-
-                if (!(cR + bri > 255 || cR + bri < 0))
+                // check if values for RGB will be between 0 and 255
+                if (cR + bri > 255)
                 {
-                    red = cR + bri;
+                  red = 255;
                 }
-                if (!(cG + bri > 255 || cG + bri < 0))
+                else if (cR + bri < 0)
                 {
-                    green = cG + bri;
+                  red = 0;
                 }
-                if (!(cB + bri > 255 || cB + bri < 0))
+                else
                 {
-                    blue = cB + bri;
+                  red = cR + bri;
+                }
+                if (cG + bri > 255)
+                {
+                  green = 255;
+                }
+                else if (cG + bri < 0)
+                {
+                  green = 0;
+                }
+                else
+                {
+                  green = cG + bri;
+                }
+                if (cB + bri > 255)
+                {
+                  blue = 255;
+                }
+                else if (cB + bri < 0)
+                {
+                  blue = 0;
+                }
+                else
+                {
+                  blue = cB + bri;
                 }
                 bmp.SetPixel(i, j, Color.FromArgb(red, green, blue));
             }
