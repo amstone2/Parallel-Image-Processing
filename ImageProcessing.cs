@@ -24,6 +24,7 @@ using System.Windows.Forms;
 
 /************************************************************/
 
+    // Class so we can pass data to the threads as an object for compression.
     public class ThreadDataForCompression {
         public Rectangle rec;
         public readonly Graphics g;
@@ -31,7 +32,10 @@ using System.Windows.Forms;
         public int compressionValue;
         public readonly CountdownEvent cntEvent;
 
-        public ThreadDataForCompression(Rectangle r, ref Graphics g, in Bitmap bitmap, int cv, ref CountdownEvent ce) {
+        // Constructor to initialize the class.
+        public ThreadDataForCompression(Rectangle r, ref Graphics g, 
+          in Bitmap bitmap, int cv, ref CountdownEvent ce) 
+        {
           this.rec = r;
           this.g = g;
           this.bmp = bitmap;
@@ -40,13 +44,14 @@ using System.Windows.Forms;
         }
     }
 
-
+        // Class so we can pass data to the threads as an object for modification.
         public class ThreadDataForModification {
         public Rectangle rec;
         public readonly Bitmap bmp;
         public int modificationValue;
         public readonly CountdownEvent cntEvent;
 
+        // Constructor to initialize the class.
         public ThreadDataForModification(Rectangle r, ref Bitmap bitmap, int modificationValue, ref CountdownEvent cntEvent) {
           this.rec = r;
           this.bmp = bitmap;
@@ -56,7 +61,7 @@ using System.Windows.Forms;
     }
 /************************************************************/
 
-class CodeOverhall
+class ImageProccessing
 {
     /************************************************************/
     static void Main(string[] args)
@@ -74,7 +79,7 @@ class CodeOverhall
 
             String mode = args[3];
 
-            // For compression
+            // For compression. 
             if (mode == "compress")
             {
                 int compressionValue = Int32.Parse(args[4]);
@@ -83,11 +88,13 @@ class CodeOverhall
                 compressImageSerial (filename, serialNewFileName, compressionValue);
 
             }
+            // For black and white.
             else if(mode == "baw")
             {
               blackAndWhiteImageInParallel(threads, filename, newFilename);
               blackAndWhiteImageSerial(filename, serialNewFileName);
             }
+            // For brightness.
             else if(mode == "bri")
             {
                int brightness = Int32.Parse(args[4]);
@@ -95,6 +102,7 @@ class CodeOverhall
               brightnessInParallel(threads, filename, newFilename, brightness);
               brightnessSerial(filename, serialNewFileName, brightness);
             }
+            // For getting thread boarders.
             else if(mode == "border")
             {
               setBorderInParallel(threads, filename, newFilename);
@@ -115,54 +123,31 @@ class CodeOverhall
     /************************************************************/
     // Takes a the number of threads (must be an even number), a filename for the original image,
     // and a newfile name for the compressed image
-    public static void compressImageParallel(
-        int threads,
-        String filename,
-        String newFilename,
-        int compressionValue
-    )
-    {
+    public static void compressImageParallel(int threads, String filename, String newFilename, int compressionValue){
         Stopwatch watch = new Stopwatch();
         watch.Start();
         // Image bitmap
         Bitmap bmp = new Bitmap(filename);
-
-        // Original height and width.
+        // Get bitmap to draw onto.
         int totalWidth = bmp.Width;
         int totalHeight = bmp.Height;
-
+        Bitmap finalBitmap = new Bitmap(totalWidth, totalHeight);
         // threads passed to partitioning algorithm.
         int numOfColumns = threads / 2;
-
         // Get the rectangles needed to compress the image.
-        Rectangle[] partitionedRectangles = new Rectangle[threads];
-        getRectangles(ref bmp,
-        threads,
-        ref partitionedRectangles);
-
-        // Final bitmap to have lines drawn on it.
-        Bitmap finalBitmap = new Bitmap(totalWidth, totalHeight);
-
+        Rectangle[] partitionedRectangles = new Rectangle[threads]; 
+        getRectangles(ref bmp, threads, ref partitionedRectangles);
         // Set the graphics object to be the bitmap we will draw onto.
         Graphics g = Graphics.FromImage(finalBitmap);
-
         // Countdown event so we can tell when the threads are done.
         CountdownEvent cntEvent = new CountdownEvent(threads);
-
-
-
-
         // Go through all the rectangles, compressing and drawing them back on the bitmap.
-        foreach (var rec in partitionedRectangles)
-        {
+        foreach (var rec in partitionedRectangles){
             var data = new ThreadDataForCompression(rec, ref g, in bmp, compressionValue, ref cntEvent);
             ThreadPool.QueueUserWorkItem(s => compressRectangleAndDraw(s), data);
-        }
-        
-
+            }
         // Wait until all threads are done.
         cntEvent.Wait();
-
         // Create and save the final bitmap.
         watch.Stop();
         long parTime = watch.ElapsedMilliseconds;
@@ -261,6 +246,7 @@ class CodeOverhall
     /************************************************************/
     public static void compressRectangleAndDraw(object d)
     {
+        // Cast and get data from object.
         ThreadDataForCompression data = (ThreadDataForCompression)d;
         var rec = data.rec;
         var g = data.g;
@@ -268,17 +254,19 @@ class CodeOverhall
         var compressionValue = data.compressionValue;
         var cntEvent = data.cntEvent;
 
+        // Clone the portion of the bitmap we want to compress.
         Bitmap cloneBitmap = bmp.Clone(rec, bmp.PixelFormat);
 
+        // Compress the image and get it from the memory steam. 
         MemoryStream ms = CompressImage(cloneBitmap, compressionValue);
         var compressedImage = Image.FromStream(ms);
 
-        lock (g)
+        // Lock the graphics ob
+        lock (g)  
         {
             // Draw the smaller rectangles on the bitmap
             g.DrawImage(compressedImage, new Point(rec.X, rec.Y));
         }
-
         cntEvent.Signal();
     }
 
@@ -291,15 +279,13 @@ class CodeOverhall
         ImageCodecInfo jpgEncoder = GetEncoder(ImageFormat.Jpeg);
 
         // Get the quality of the encoder.
-        System.Drawing.Imaging.Encoder QualityEncoder =
-            System.Drawing.Imaging.Encoder.Quality;
+        System.Drawing.Imaging.Encoder QualityEncoder = System.Drawing.Imaging.Encoder.Quality;
 
         // Get an array of encoder objects. The 1 means it is of size one because we only need one encoder.
         EncoderParameters myEncoderParameters = new EncoderParameters(1);
 
         // Gets the encoder parameter with the specified quality.
-        EncoderParameter myEncoderParameter =
-            new EncoderParameter(QualityEncoder, compressionValue);
+        EncoderParameter myEncoderParameter = new EncoderParameter(QualityEncoder, compressionValue);
 
         // Sets the encoder parameter.
         myEncoderParameters.Param[0] = myEncoderParameter;
@@ -339,11 +325,11 @@ class CodeOverhall
         MemoryStream ms = CompressImage (bmp, compressionValue);
         var compressedImage = Image.FromStream(ms);
 
-        // compressedImage.Save(newFilename);
-
         watch.Stop();
         long serialTime = watch.ElapsedMilliseconds;
         Console.WriteLine("Serial Time time for compression: " + serialTime + " ms\n");
+        // compressedImage.Save(newFilename);
+
     }
     /************************************************************/
 
@@ -478,7 +464,7 @@ class CodeOverhall
 
         watch.Stop();
         long parallelTime = watch.ElapsedMilliseconds;
-        Console.WriteLine("Parallel time for baw: " + parallelTime + " ms\n");
+        Console.WriteLine("Parallel time for bri: " + parallelTime + " ms\n");
         // Save the bitmap to the new file name.
         bmp.Save (newFilename);
     }
@@ -500,8 +486,8 @@ class CodeOverhall
 
         watch.Stop();
         long parallelTime = watch.ElapsedMilliseconds;
-        Console.WriteLine("Serial time for baw: " + parallelTime + " ms\n");
-        bmp.Save (newFilename);
+        Console.WriteLine("Serial time for bri: " + parallelTime + " ms\n");
+        // bmp.Save (newFilename);
     }
 
 
@@ -657,4 +643,3 @@ class CodeOverhall
     }
 }
 /************************************************************/
-
